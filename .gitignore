@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# Virtual Environment
+.venv/
+venv/
+ENV/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Application specific - don't commit audio files
+*.wav
+*.mp3
+*.m4a
+*.opus
+*.ogg
+*.flac
+
+# Config
+settings.json
+
+# Test files
+test_init.py
