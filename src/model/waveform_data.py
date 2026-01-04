@@ -21,7 +21,7 @@ class WaveformData:
         self._waveform: Optional[np.ndarray] = None
         self._resolution = 1000
 
-    def extract_waveform(self, resolution: int = 1000) -> Optional[np.ndarray]:
+    def extract_waveform(self, resolution: int = 1024) -> Optional[np.ndarray]:
         """Extract waveform amplitude data from audio file
 
         Args:

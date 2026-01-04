@@ -13,7 +13,6 @@ from src.model.codec_config import CodecPresets
 from src.model.format_converter import FormatConverter
 from src.model.memo_manager import MemoManager
 from src.model.settings import AppSettings
-from src.model.spectrogram_data import SpectrogramData
 from src.view.main_window import MainWindow
 from src.view.settings_dialog import SettingsDialog
 
@@ -36,7 +35,6 @@ class MainController(QObject):
         # Initialize models
         self._audio_recorder = AudioRecorder()
         self._audio_player = AudioPlayer()
-        self._spectrogram = SpectrogramData(self._settings.get_storage_directory())
         self._format_converter = FormatConverter()
         self._memo_manager = MemoManager(self._settings.get_storage_directory())
 
@@ -271,6 +269,10 @@ class MainController(QObject):
 
         if self._audio_player.is_playing():
             self._audio_player.stop()
+
+        # Unload playback controller to stop any background threads
+        if self._playback_controller:
+            self._playback_controller.unload()
 
         # Save settings
         self._settings.save()

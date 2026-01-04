@@ -283,9 +283,9 @@ class RecordingController(QObject):
         Args:
             samples: 1D numpy array of audio samples (-1.0 to 1.0)
         """
-        # Compute STFT slice for this audio chunk
+        # Compute STFT slice for this audio chunk (medium quality)
         magnitude_slice = AudioUtils.compute_stft_slice(
-            samples, sample_rate=48000, n_fft=2048, freq_min=80.0, freq_max=8000.0
+            samples, sample_rate=48000, n_fft=1024, freq_min=80.0, freq_max=8000.0
         )
 
         if magnitude_slice is None:
@@ -294,7 +294,7 @@ class RecordingController(QObject):
         # Store frequency bins on first slice
         if self._frequency_bins is None:
             # Calculate frequency bins for the filtered range
-            n_fft = 2048
+            n_fft = 1024
             sample_rate = 48000
             all_freqs = np.fft.rfftfreq(n_fft, 1.0 / sample_rate)
             mask = (all_freqs >= 80.0) & (all_freqs <= 8000.0)

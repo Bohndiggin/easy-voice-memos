@@ -285,6 +285,12 @@ class FFmpegWrapper:
             or None if extraction fails
         """
         try:
+            # Get file's actual sample rate to match spectrogram extraction
+            audio_info = self.get_audio_info(file_path)
+            file_sample_rate = audio_info.get("sample_rate", 48000)
+            # Use file's sample rate or downsample to 16kHz for efficiency (matches spectrogram)
+            target_sample_rate = min(file_sample_rate, 16000)
+
             # Build ffmpeg command to extract PCM data
             cmd = [
                 self.ffmpeg_path,
@@ -295,7 +301,7 @@ class FFmpegWrapper:
                 "-ac",
                 "1",  # Mono
                 "-ar",
-                "4000",  # 4kHz sample rate (sufficient for visualization)
+                str(target_sample_rate),  # Use same sample rate as spectrogram for perfect alignment
             ]
 
             if max_duration:
@@ -311,16 +317,20 @@ class FFmpegWrapper:
             if len(audio_data) == 0:
                 return None
 
-            # Downsample to target resolution
+            # Downsample to target resolution using evenly-spaced sampling
+            # This ensures perfect time alignment across the entire audio duration
             if len(audio_data) > resolution:
-                # Calculate chunk size
-                chunk_size = len(audio_data) // resolution
+                # Create evenly-spaced indices across the entire audio
+                indices = np.linspace(0, len(audio_data), resolution + 1, dtype=int)
 
-                # Reshape and take max absolute value in each chunk
-                chunks = len(audio_data) // chunk_size
-                trimmed = audio_data[: chunks * chunk_size]
-                reshaped = trimmed.reshape(chunks, chunk_size)
-                waveform = np.max(np.abs(reshaped), axis=1)[:resolution]
+                # For each segment between indices, take the max absolute value
+                # This ensures each waveform point represents an equal time interval
+                waveform = np.array([
+                    np.max(np.abs(audio_data[indices[i]:indices[i+1]]))
+                    if indices[i+1] > indices[i]
+                    else np.abs(audio_data[indices[i]]) if indices[i] < len(audio_data) else 0.0
+                    for i in range(resolution)
+                ])
             else:
                 waveform = np.abs(audio_data)
 

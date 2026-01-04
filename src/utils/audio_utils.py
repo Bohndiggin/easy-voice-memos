@@ -162,13 +162,14 @@ class AudioUtils:
             - magnitude_spectrogram: 2D array [time, freq] with dB values
             - frequencies: 1D array of frequency values in Hz
         """
-        # Compute STFT
+        # Compute STFT without boundary padding to avoid time offset
         f, t, Zxx = signal.stft(
             audio_data,
             fs=sample_rate,
             window=window,
             nperseg=n_fft,
             noverlap=n_fft - hop_length,
+            boundary=None,  # Avoid zero-padding that causes time misalignment
         )
 
         # Convert to magnitude (dB scale)
@@ -178,7 +179,19 @@ class AudioUtils:
         magnitude_db = 20 * np.log10(magnitude + 1e-10)
 
         # Transpose to [time, freq] format for easier visualization
-        return magnitude_db.T, f
+        spectrogram = magnitude_db.T  # Shape: [time_frames, freq_bins]
+
+        # CRITICAL FIX: Remove any STFT frames that extend beyond the actual audio duration
+        # This happens because STFT uses window centers, so the last frame's window
+        # can extend past the end of the audio, causing misalignment with playback position
+        audio_duration = len(audio_data) / sample_rate
+        stft_duration = t[-1] if len(t) > 0 else 0.0
+        if len(t) > 0 and stft_duration > audio_duration:
+            # Find frames that are within the audio duration
+            valid_frames = t <= audio_duration
+            spectrogram = spectrogram[valid_frames, :]
+
+        return spectrogram, f
 
     @staticmethod
     def filter_frequency_range(
@@ -207,14 +220,15 @@ class AudioUtils:
     def compute_stft_slice(
         audio_chunk: np.ndarray,
         sample_rate: int = 48000,
-        n_fft: int = 2048,
+        n_fft: int = 1024,
         freq_min: float = 80.0,
         freq_max: float = 8000.0,
     ) -> Optional[np.ndarray]:
         """Compute single STFT slice for real-time spectrogram updates
 
         Used during recording to get one frequency-domain slice from a chunk
-        of audio samples.
+        of audio samples. Note: This is already properly aligned since it
+        doesn't use scipy.signal.stft's boundary padding.
 
         Args:
             audio_chunk: 1D numpy array of audio samples
